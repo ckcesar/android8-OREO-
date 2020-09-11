@@ -1,0 +1,59 @@
+Na classe onde ocorre o problema de 
+"Context.startForegroundService() did not then call Service.startForeground()"
+
+Você pode trabalhar com "Notification" onde podemos tratar esse problema com Android 8.0.
+
+Vou mostrar um exemplo ao chamar a minha classe.
+
+====================================
+	@Override
+	public void onCreate() {
+		Sentry.init(this, DSN);
+		DiskService.startIfNotRunning(this);
+		super.onCreate();
+	}
+
+====================================
+	public static void startIfNotRunning(Context context) {
+		if(isRunning(context)) {
+			Sentry.addBreadcrumb("Serviço já iniciado!");
+			return;
+		}
+
+
+		Sentry.addBreadcrumb("Iniciando serviço...");
+		if (Build.VERSION.SDK_INT >= 26) {
+			Intent intent=new Intent(context,AquiVouChamarAminhAClasse.class);
+			String CHANNEL_ID="MYCHANNEL";
+			@SuppressLint("WrongConstant") NotificationChannel notificationChannel=new NotificationChannel(CHANNEL_ID,"name",NotificationManager.IMPORTANCE_LOW);
+			PendingIntent pendingIntent=PendingIntent.getActivity(context,1,intent,0);
+			Notification notification=new Notification.Builder(context,CHANNEL_ID)
+					.setContentText("Heading")
+					.setContentTitle("subheading")
+					.setContentIntent(pendingIntent)
+					.addAction(android.R.drawable.sym_action_chat,"Title",pendingIntent)
+					.setChannelId(CHANNEL_ID)
+					.setSmallIcon(android.R.drawable.sym_action_chat)
+					.build();
+
+			NotificationManager notificationManager=(NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+			notificationManager.createNotificationChannel(notificationChannel);
+			notificationManager.notify(1,notification);
+		} else {
+			context.startService(new Intent(context, AquiVouChamarAminhAClasse.class));
+		}
+
+	}
+====================================
+Agora no AndroidManifest.xml
+
+	<uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+	<uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+
+
+====================================
+
+Fontes
+https://stackoverflow.com/questions/13902115/how-to-create-a-notification-with-notificationcompat-builder
+
+https://developer.android.com/reference/android/content/Context.html#startForegroundService(android.content.Intent)
